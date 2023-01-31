@@ -1,24 +1,78 @@
+const fs = require('fs')
+const { json } = require('stream/consumers')
+
+let productos = []
+let resultado
+
+// Confirmo si ya existe el archivo JSON
+let existeFile = false
+if (fs.existsSync("./objetos.json")){
+    existeFile = true
+}
+
+// Función para crear por primera vez el archivo JSON, con su primer objeto dentro
+const crearFileObjetos = async(param) => {
+    await fs.promises.writeFile('./objetos.json', param)
+}
+
+// Función para agregar un objeto al archivo JSON ya existente
+const updateFileObjetos = async(param) => {
+    await fs.promises.appendFile('./objetos.json', param)
+}
+
+// Función para leer el archivo JSON ya existente y mostrar los resultados por consola
+const leerFileObjetos = async() => {
+   let resultado = await fs.promises.readFile('./objetos.json', 'utf-8')
+   productos = JSON.parse(resultado)
+   console.log("El listado de productos es:")
+   console.log(productos)
+}
+
+// Función combinada: Chequea si el JSON existe. Si existe, agrega el objeto. Si no, lo crea con el objeto.
+function addProductFileObjetos (producto) {
+    if (existeFile = false) {
+        crearFileObjetos(JSON.stringify(producto))
+        
+    } else {
+        updateFileObjetos(JSON.stringify(producto))
+        updateFileObjetos("\n")
+    }
+}
+
+
+
 class ProductManager {
     constructor (productsColection){
-        this.products = []
+        if (existeFile) {
+            resultado = fs.readFileSync('./objetos.json', 'utf-8')
+            productos.push(JSON.parse(resultado)) 
+        } else {
+            productos = []
+        }
+        // this.products = productos
         console.log("Nuevo objeto creado")
     }
 
-    getProducts(){
-        console.log(this.products)
+    getProducts() {
+        if (existeFile) {
+            resultado = fs.readFileSync('./objetos.json', 'utf-8')
+            productos = JSON.parse(resultado)
+        }
+        console.log("El listado de productos es:")
+        console.log(productos)
     }
+    
 
     addProduct(title, description, price, thumbnail, code, stock) {
         
         if (stock != undefined) {
-            let productos = this.products
-            
+
             let filtrado = productos.filter(function(el) {
                 return el.code === code;
             })
 
             if (filtrado.length == 0) {
-                this.products.push ({
+                let productoParaAgregar =[{
                     id: productos.length,
                     title: title,
                     description: description,
@@ -26,7 +80,15 @@ class ProductManager {
                     thumbnail: thumbnail,
                     code: code,
                     stock: stock
-                })
+                }]
+                if (existeFile) {
+                    fs.appendFileSync('./objetos.json', '\n'+JSON.stringify(productoParaAgregar))
+                } else {
+                    fs.writeFileSync('./objetos.json', JSON.stringify(productoParaAgregar))
+                    existeFile = true
+                }
+
+
             } else {
             console.log("Error: Ya existe un producto con el mismo Código")
             }
@@ -37,7 +99,6 @@ class ProductManager {
     }
 
     getProductsById(id) {
-        let productos = this.products
         let filtrado = productos.filter(function(el) {
             return el.id === id;
         })
@@ -81,3 +142,5 @@ console.log(" ")
 console.log("*** Se evaluará que getProductById devuelva el producto en caso de encontrarlo")
 instancia.getProductsById(0)
 console.log(" ")
+
+
