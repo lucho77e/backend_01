@@ -15,7 +15,13 @@ const app = express()
 app.use(express.urlencoded({extended:true}))
 
 app.get('/products', (req, res) => {
-    res.send(productos)
+    let limit = req.query.limit
+    if (req.query.limit != undefined) {
+        let limiteProductos = productos.slice(0,req.query.limit)
+        res.send(limiteProductos)
+    } else {
+        res.send(productos)
+    }
 })
 
 app.get('/products/:pid', (req, res) => {
@@ -27,6 +33,8 @@ app.get('/products/:pid', (req, res) => {
         res.send("El objeto no existe")
     }
 })
+
+
 
 
 app.listen(8080, () => console.log("Servidor escuchando 8080"))
