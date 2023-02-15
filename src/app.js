@@ -1,6 +1,8 @@
 const express = require('express')
 const fs = require('fs')
 const { json } = require('stream/consumers')
+const bodyParser = require('body-parser')
+
 let productos = []
 let resultado
 
@@ -12,9 +14,11 @@ const leerFileObjetos = async() => {
 leerFileObjetos()
 
 const app = express()
+app.use(bodyParser.urlencoded({ extended: false }))
 app.use(express.urlencoded({extended:true}))
+app.use(bodyParser.json())
 
-app.get('/products', (req, res) => {
+app.get('/api/products', (req, res) => {
     let limit = req.query.limit
     if (req.query.limit != undefined) {
         let limiteProductos = productos.slice(0,req.query.limit)
@@ -24,7 +28,29 @@ app.get('/products', (req, res) => {
     }
 })
 
-app.get('/products/:pid', (req, res) => {
+
+
+
+app.delete('/api/products/:pid', (req, res) => {
+    let idProducto = req.params.pid
+    let index = productos.findIndex(x => x.id == idProducto);
+
+
+    if (index != -1) {       
+        console.log(index)
+
+        let eliminado = productos.splice(index, 1)
+
+        fs.writeFileSync('../objetos.json', JSON.stringify(productos))
+        res.json(productos)
+        
+    } else {
+        res.send("No existe el producto")
+    } 
+})
+
+
+app.get('/api/products/:pid', (req, res) => {
     let idProducto = req.params.pid
     let productoFiltrado = productos.find(u=> u.id == idProducto)
     if (productoFiltrado) {
@@ -35,6 +61,50 @@ app.get('/products/:pid', (req, res) => {
 })
 
 
+app.put('/api/products/:pid', (req, res) => {
+    let idProducto = req.params.pid
+    let index = productos.findIndex(x => x.id == idProducto);
+
+    if (index != -1) {
+        let productoParaAgregar = req.body
+        productoParaAgregar.id = idProducto
+       
+        if(productoParaAgregar.status == undefined) {
+            productoParaAgregar.status = true
+        }
+         
+        if ((productoParaAgregar.title) && (productoParaAgregar.description) && (productoParaAgregar.code) && (productoParaAgregar.price) && (productoParaAgregar.stock) && (productoParaAgregar.category)) {
+            productos[index] = productoParaAgregar
+            fs.writeFileSync('../objetos.json', JSON.stringify(productos))
+            res.json(productoParaAgregar)
+        } else {
+            res.send("Faltan parámetros")
+        } 
+    } else {
+        res.send("No existe el producto")
+    } 
+})
+
+
+app.post('/api/products/', (req, res) => {
+    let productoParaAgregar = req.body
+    
+    if(productoParaAgregar.status == undefined) {
+        productoParaAgregar.status = true
+    }
+    
+    let valueId = `${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`
+    productoParaAgregar.id = valueId
+   
+    if ((productoParaAgregar.title) && (productoParaAgregar.description) && (productoParaAgregar.code) && (productoParaAgregar.price) && (productoParaAgregar.code) && (productoParaAgregar.stock) && (productoParaAgregar.category)) {
+        productos.push(productoParaAgregar)
+        fs.writeFileSync('../objetos.json', JSON.stringify(productos))
+        res.json(productoParaAgregar)
+    } else {
+        res.send("Faltan parámetros")
+    }
+
+})
 
 
 app.listen(8080, () => console.log("Servidor escuchando 8080"))
