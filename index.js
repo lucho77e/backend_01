@@ -1,5 +1,6 @@
 const fs = require('fs')
 const { json } = require('stream/consumers')
+const { CLIENT_RENEG_LIMIT } = require('tls')
 
 let productos = []
 let resultado
@@ -10,60 +11,59 @@ if (fs.existsSync("./objetos.json")){
     existeFile = true
 }
 
-// Función para crear por primera vez el archivo JSON, con su primer objeto dentro
-const crearFileObjetos = async(param) => {
-    await fs.promises.writeFile('./objetos.json', param)
-}
+// // Función para crear por primera vez el archivo JSON, con su primer objeto dentro
+// const crearFileObjetos = async(param) => {
+//     await fs.promises.writeFile('./objetos.json', param)
+// }
 
-// Función para agregar un objeto al archivo JSON ya existente
-const updateFileObjetos = async(param) => {
-    await fs.promises.appendFile('./objetos.json', param)
-}
+// // Función para agregar un objeto al archivo JSON ya existente
+// const updateFileObjetos = async(param) => {
+//     await fs.promises.appendFile('./objetos.json', param)
+// }
 
-// Función para leer el archivo JSON ya existente y mostrar los resultados por consola
-const leerFileObjetos = async() => {
-   let resultado = await fs.promises.readFile('./objetos.json', 'utf-8')
-   productos = JSON.parse(resultado)
-   console.log("El listado de productos es:")
-   console.log(productos)
-}
+// // Función para leer el archivo JSON ya existente y mostrar los resultados por consola
+// const leerFileObjetos = () => {
+//    let resultado = fs.promises.readFileSync('./objetos.json', 'UTF-8')
+//    productos = JSON.parse(resultado)
+//    console.log("El listado de productos es:")
+//    console.log(productos)
+// }
 
-// Función combinada: Chequea si el JSON existe. Si existe, agrega el objeto. Si no, lo crea con el objeto.
-function addProductFileObjetos (producto) {
-    if (existeFile = false) {
-        crearFileObjetos(JSON.stringify(producto))
+// // Función combinada: Chequea si el JSON existe. Si existe, agrega el objeto. Si no, lo crea con el objeto.
+// function addProductFileObjetos (producto) {
+//     if (existeFile = false) {
+//         crearFileObjetos(JSON.stringify(producto,null,2))
         
-    } else {
-        updateFileObjetos(JSON.stringify(producto))
-        updateFileObjetos("\n")
-    }
-}
+//     } else {
+//         updateFileObjetos(JSON.stringify(producto,null,2))
+//         updateFileObjetos("\n")
+//     }
+// }
 
 
 
 class ProductManager {
-    constructor (productsColection){
+    constructor (){
         if (existeFile) {
-            resultado = fs.readFileSync('./objetos.json', 'utf-8')
-            productos.push(JSON.parse(resultado)) 
+            resultado = JSON.parse(fs.readFileSync('./objetos.json', 'UTF-8')) 
+            productos = resultado 
         } else {
             productos = []
         }
-        // this.products = productos
-        console.log("Nuevo objeto creado")
+
     }
 
     getProducts() {
         if (existeFile) {
-            resultado = fs.readFileSync('./objetos.json', 'utf-8')
-            productos = JSON.parse(resultado)
+            resultado =  JSON.parse(fs.readFileSync('./objetos.json', 'UTF-8'))
+            productos = resultado
         }
         console.log("El listado de productos es:")
         console.log(productos)
     }
     
 
-    addProduct(title, description, price, thumbnail, code, stock) {
+    async addProduct( title, description, price, thumbnail, code, stock ) {
         
         if (stock != undefined) {
 
@@ -72,23 +72,20 @@ class ProductManager {
             })
 
             if (filtrado.length == 0) {
-                let productoParaAgregar =[{
-                    id: productos.length,
+                let next_id = productos[productos.length-1].id+1
+                let productoParaAgregar ={
+                    id: next_id,
                     title: title,
                     description: description,
                     price: price,
                     thumbnail: thumbnail,
                     code: code,
                     stock: stock
-                }]
-                if (existeFile) {
-                    fs.appendFileSync('./objetos.json', '\n'+JSON.stringify(productoParaAgregar))
-                } else {
-                    fs.writeFileSync('./objetos.json', JSON.stringify(productoParaAgregar))
-                    existeFile = true
                 }
-
-
+                productos.push(productoParaAgregar)
+                let data_json = JSON.stringify(productos,null,2)
+                await fs.promises.writeFile('./objetos.json', data_json)
+                existeFile = true
             } else {
             console.log("Error: Ya existe un producto con el mismo Código")
             }
@@ -107,12 +104,45 @@ class ProductManager {
         } else {
             console.log("Not found")
         }
+    }
 
+
+    async updateProduct(id, data) {
+        let indice = productos.findIndex(producto => producto.id === id)
+        let productoParaModificar = productos[indice]
+
+        for (let prop in data) {     
+            productoParaModificar[prop] = data[prop]
+        }
+
+        productos[indice] = productoParaModificar
+        let data_json = JSON.stringify(productos,null,2)
+        await fs.promises.writeFile('./objetos.json', data_json)
+
+    }
+
+
+    async deleteProduct(id) {
+        productos = productos.filter(el => el.id!==id)
+        let data_json = JSON.stringify(productos,null,2)
+        await fs.promises.writeFile('./objetos.json', data_json)
     }
 }
 
 //
 
+async function manager() {
+    let instancia = new ProductManager();
+    instancia.updateProduct(55, {
+        price: 110
+      })
+    // await instancia.addProduct("Manaos", "Envase retornable 1l", 60, "Sin imagen", "zzz", 25)
+    // await instancia.deleteProduct(1)
+}
+
+manager()
+
+/*
 
 console.log("*** Se creará una instancia de la clase “ProductManager”")
 let instancia = new ProductManager();
@@ -142,5 +172,8 @@ console.log(" ")
 console.log("*** Se evaluará que getProductById devuelva el producto en caso de encontrarlo")
 instancia.getProductsById(0)
 console.log(" ")
+
+*/
+
 
 
