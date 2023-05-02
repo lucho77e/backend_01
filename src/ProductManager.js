@@ -1,4 +1,31 @@
 const fs = require('fs')
+const express = require('express')
+
+const app = express()
+app.use(express.urlencoded({extended:true}))
+
+app.get('/products', (req, res) => {
+    let limit = req.query.limit
+    if (req.query.limit != undefined) {
+        let limiteProductos = productos.slice(0,req.query.limit)
+        res.send(limiteProductos)
+    } else {
+        res.send(productos)
+    }
+})
+
+app.get('/products/:pid', (req, res) => {
+    let idProducto = req.params.pid
+    let productoFiltrado = productos.find(u=> u.id == idProducto)
+    if (productoFiltrado) {
+        res.send(productoFiltrado)
+    } else {
+        res.send("El objeto no existe")
+    }
+})
+
+
+app.listen(8080, () => console.log("Servidor escuchando 8080"))
 
 
 
@@ -127,8 +154,6 @@ class ProductManager {
 
     }
 }
-
-
 
 
 async function manager() {
