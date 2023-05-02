@@ -1,84 +1,91 @@
 const fs = require('fs')
-const path = require('path')
 
-let productos = []
-let resultado
-let ruta 
-let existeFile = false
 
 
 class ProductManager {
     constructor (path){
-        ruta = path
+        this.productos = []
+        this.resultado
+        this.ruta = path 
+        this.existeFile = false
 
         // Confirmo si ya existe el archivo JSON
-        if (fs.existsSync(ruta)){
-            existeFile = true
+        if (fs.existsSync(this.ruta)){
+            this.existeFile = true
         }
 
-        if (existeFile) {
-            resultado = JSON.parse(fs.readFileSync(ruta, 'UTF-8')) 
-            productos = resultado 
+        if (this.existeFile) {
+            this.resultado = JSON.parse(fs.readFileSync(this.ruta, 'UTF-8')) 
+            this.productos = this.resultado 
         } else {
-            productos = []
+            this.productos = []
         }
 
     }
 
     getProducts() {
-        if (existeFile) {
-            resultado =  JSON.parse(fs.readFileSync(ruta, 'UTF-8'))
-            productos = resultado
+        if (this.existeFile) {
+            this.resultado =  JSON.parse(fs.readFileSync(this.ruta, 'UTF-8'))
+            this.productos = this.resultado
         }
         console.log("El listado de productos es:")
-        console.log(productos)
+        console.log(this.productos)
+        return this.productos
     }
     
 
     async addProduct( title, description, price, thumbnail, code, stock ) {
-        
-        if (stock != undefined) {
+        try{
+            if (stock != undefined) {
 
-            let filtrado = productos.filter(function(el) {
-                return el.code === code;
-            })
+                let filtrado = this.productos.filter(function(el) {
+                    return el.code === code;
+                })
 
-            if (filtrado.length == 0) {
-                let next_id
-                if (productos.length > 0) {
-                    next_id = productos[productos.length-1].id+1
+                if (filtrado.length == 0) {
+                    let next_id
+                    if (this.productos.length > 0) {
+                        next_id = this.productos[this.productos.length-1].id+1
+                    } else {
+                        next_id = 1
+                    }
+
+                    let productoParaAgregar ={
+                        id: next_id,
+                        title: title,
+                        description: description,
+                        price: price,
+                        thumbnail: thumbnail,
+                        code: code,
+                        stock: stock
+                    }
+                    this.productos.push(productoParaAgregar)
+                    let data_json = JSON.stringify(this.productos,null,2)
+                    await fs.promises.writeFile(this.ruta, data_json)
+                    this.existeFile = true
+                    
+                    return 'User ID: '+productoParaAgregar.id
+
                 } else {
-                    next_id = 1
+                console.log("Error: Ya existe un producto con el mismo Código")
                 }
 
-                let productoParaAgregar ={
-                    id: next_id,
-                    title: title,
-                    description: description,
-                    price: price,
-                    thumbnail: thumbnail,
-                    code: code,
-                    stock: stock
-                }
-                productos.push(productoParaAgregar)
-                let data_json = JSON.stringify(productos,null,2)
-                await fs.promises.writeFile(ruta, data_json)
-                existeFile = true
             } else {
-            console.log("Error: Ya existe un producto con el mismo Código")
+                console.log("Error: Faltan especificar algunos campos. Debe ingresar los parámetros Título, Descripción, Precio, Imagen, Código y Stock")
             }
-
-        } else {
-            console.log("Error: Faltan especificar algunos campos. Debe ingresar los parámetros Título, Descripción, Precio, Imagen, Código y Stock")
+        } catch(error) {
+            console.log(error)
+            return 'Error al crear el usuario'
         }
     }
 
     getProductsById(id) {
-        let filtrado = productos.filter(function(el) {
+        let filtrado = this.productos.filter(function(el) {
             return el.id === id;
         })
         if (filtrado.length > 0) {
             console.log(filtrado)
+            return filtrado
         } else {
             console.log("Not found")
         }
@@ -86,24 +93,38 @@ class ProductManager {
 
 
     async updateProduct(id, data) {
-        let indice = productos.findIndex(producto => producto.id === id)
-        let productoParaModificar = productos[indice]
-
-        for (let prop in data) {     
-            productoParaModificar[prop] = data[prop]
+        try {
+            let indice = this.productos.findIndex(producto => producto.id === id)
+            let productoParaModificar = this.productos[indice]
+    
+            for (let prop in data) {     
+                productoParaModificar[prop] = data[prop]
+            }
+    
+            this.productos[indice] = productoParaModificar
+            let data_json = JSON.stringify(this.productos,null,2)
+            await fs.promises.writeFile(this.ruta, data_json)
+            return 'Updated user: '+ id
+        } catch(error) {
+            console.log(error)
+            return 'Error al modificar el usuario'
         }
 
-        productos[indice] = productoParaModificar
-        let data_json = JSON.stringify(productos,null,2)
-        await fs.promises.writeFile(ruta, data_json)
 
     }
 
 
     async deleteProduct(id) {
-        productos = productos.filter(el => el.id!==id)
-        let data_json = JSON.stringify(productos,null,2)
-        await fs.promises.writeFile(ruta, data_json)
+        try{
+            this.productos = this.productos.filter(el => el.id!==id)
+            let data_json = JSON.stringify(this.productos,null,2)
+            await fs.promises.writeFile(this.ruta, data_json)
+            return 'Deleted user: '+ id
+        } catch(error) {
+            console.log(error)
+            return 'Error al borrar el usuario'
+        }
+
     }
 }
 
